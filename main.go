@@ -16,5 +16,6 @@ func main() {
 		fmt.Println("File reading error", err)
 		return
 	}
-	fmt.Printf("Contents of file: %s\n", string(data))
+
+	parser(string(data))
 }
