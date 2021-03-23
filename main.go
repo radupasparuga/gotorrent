@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,11 +12,10 @@ func main() {
 	flag.Parse()
 
 	data, err := ioutil.ReadFile(*pathPtr)
-
 	if err != nil {
 		fmt.Println("File reading error", err)
 		return
 	}
 
-	parser(string(data))
+	parser(bytes.NewReader((data)))
 }
