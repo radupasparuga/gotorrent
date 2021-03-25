@@ -33,19 +33,35 @@ func parser(data *bytes.Reader) (string, error) {
 				parser(data)
 			}
 		case 'l':
-			// var list []string
-			// while
-			str, strErr := parseString(data)
-			if strErr != nil {
-				return "", strErr
+			var list [2]string // todo figure out how to handle array size
+			var index int = 0
+			for {
+				check, checkErr := data.ReadByte()
+				if checkErr != nil {
+					return "", checkErr
+				} else if check == 'e' { // todo handle lists/dictionaries/etc inside a list
+					break
+				}
+				data.UnreadByte()
+				str, strErr := parseString(data)
+				if strErr != nil {
+					return "", strErr
+				}
+				list[index] = str
+				index = index + 1
 			}
-			fmt.Println(str)
+			fmt.Println(list)
 			parser(data)
 		case 'd':
 			fmt.Printf("d")
 			parser(data)
 		default:
-			print(string(ch))
+			data.UnreadByte()
+			str, strErr := parseString(data)
+			if strErr != nil {
+				return "", strErr
+			}
+			fmt.Println(str)
 			parser(data)
 		}
 	}
