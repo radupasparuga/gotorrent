@@ -5,35 +5,41 @@ import (
 	"fmt"
 )
 
-func parser(data *bytes.Reader) {
+type metainfo struct {
+}
+
+func parser(data *bytes.Reader) string {
 	ch, err := data.ReadByte()
 	if err != nil {
 		fmt.Println(nil, err)
-	}
-	switch ch {
-	case 'i':
-		fmt.Printf("i")
-		parser(data)
-	case 'l':
-		fmt.Printf("l")
-		parser(data)
-	case 'd':
-		fmt.Printf("d")
-		parser(data)
-	default:
-		test1, err1 := data.ReadByte()
-		if err1 != nil {
-			fmt.Println(nil, err1)
-		}
-		test2, err2 := data.ReadByte()
-		if err2 != nil {
-			fmt.Println(nil, err2)
-		}
-		if test1 == 'e' && test2 == 'e' {
-			fmt.Println("end")
-		} else {
-			fmt.Printf(string(ch))
+	} else {
+		switch ch {
+		case 'i':
+			n, err := data.ReadByte()
+			if err != nil {
+				return "File not encoded properly"
+			} else {
+				print(string(n))
+			}
+			end, endErr := data.ReadByte()
+			if endErr != nil {
+				return "File not encoded properly"
+			} else if string(end) != "e" {
+				return "File not encoded properly"
+			} else {
+				parser(data)
+			}
+		case 'l':
+			fmt.Printf("l")
+			parser(data)
+		case 'd':
+			fmt.Printf("d")
+			parser(data)
+		default:
+			print(string(ch))
 			parser(data)
 		}
 	}
+
+	return "File encoded properly"
 }

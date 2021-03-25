@@ -17,5 +17,5 @@ func main() {
 		return
 	}
 
-	parser(bytes.NewReader((data)))
+	fmt.Println(parser(bytes.NewReader((data))))
 }
