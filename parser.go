@@ -34,6 +34,7 @@ func parser(data *bytes.Reader) (string, error) {
 			}
 		case 'l':
 			// var list []string
+			// while
 			str, strErr := parseString(data)
 			if strErr != nil {
 				return "", strErr
@@ -57,6 +58,11 @@ func parseString(data *bytes.Reader) (string, error) {
 	if lenErr != nil {
 		return "", errors.New("string doesn't begin with string length")
 	}
+	colon, colonErr := data.ReadByte()
+	if colonErr != nil || string(colon) != ":" {
+		return "", errors.New("string not formatted properly")
+	}
+
 	intLen, _ := strconv.Atoi(string(len))
 	buf := make([]byte, intLen)
 	if _, sErr := io.ReadFull(data, buf); sErr != nil {
