@@ -11,7 +11,7 @@ import (
 type metainfo struct {
 }
 
-func parser(data *bytes.Reader) (string, error) {
+func parser(data *bytes.Reader) (string, error) { // todo handle multiple return data types
 	ch, err := data.ReadByte()
 	if err != nil {
 		return "", err
@@ -41,14 +41,18 @@ func parser(data *bytes.Reader) (string, error) {
 					return "", checkErr
 				} else if check == 'e' { // todo handle lists/dictionaries/etc inside a list
 					break
+				} else if check == 'l' || check == 'd' {
+					list[index], _ = parseString(data)
+					index = index + 1
+				} else {
+					data.UnreadByte()
+					str, strErr := parseString(data)
+					if strErr != nil {
+						return "", strErr
+					}
+					list[index] = str
+					index = index + 1
 				}
-				data.UnreadByte()
-				str, strErr := parseString(data)
-				if strErr != nil {
-					return "", strErr
-				}
-				list[index] = str
-				index = index + 1
 			}
 			fmt.Println(list)
 			parser(data)
