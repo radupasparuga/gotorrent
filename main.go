@@ -17,7 +17,7 @@ func main() {
 		return
 	}
 
-	parse, parseErr := parser(bytes.NewReader((data)))
+	parse, parseErr := decode(bytes.NewReader((data)))
 	if parseErr != nil {
 		fmt.Println(parseErr)
 	} else {

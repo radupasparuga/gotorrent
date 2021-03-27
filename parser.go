@@ -8,10 +8,17 @@ import (
 	"strconv"
 )
 
-type metainfo struct {
+func decode(data *bytes.Reader) (map[string]interface{}, error) {
+	metadata := map[string]interface{}{
+		"key": "value",
+	}
+
+	parser(data, metadata)
+
+	return metadata, nil
 }
 
-func parser(data *bytes.Reader) (string, error) { // todo handle multiple return data types
+func parser(data *bytes.Reader, metadata map[string]interface{}) (string, error) { // todo handle multiple return data types
 	ch, err := data.ReadByte()
 	if err != nil {
 		return "", err
@@ -30,15 +37,15 @@ func parser(data *bytes.Reader) (string, error) { // todo handle multiple return
 			} else if string(end) != "e" {
 				return "", errors.New("file not encoded properly")
 			} else {
-				parser(data)
+				parser(data, metadata)
 			}
 		case 'l':
 			array, _ := parseList(data)
 			fmt.Println(array)
-			parser(data)
+			parser(data, metadata)
 		case 'd':
-			fmt.Printf("d")
-			parser(data)
+			dict, _ := parseDict(data)
+			parser(data, metadata)
 		default:
 			data.UnreadByte()
 			str, strErr := parseString(data)
@@ -46,7 +53,7 @@ func parser(data *bytes.Reader) (string, error) { // todo handle multiple return
 				return "", strErr
 			}
 			fmt.Println(str)
-			parser(data)
+			parser(data, metadata)
 		}
 	}
 
