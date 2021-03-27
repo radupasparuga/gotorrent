@@ -66,6 +66,56 @@ func parser(data *bytes.Reader, metadata map[string]interface{}) (string, error)
 	return "File encoded properly", nil
 }
 
+func parseString(data *bytes.Reader) (string, error) { // todo fix case where length is >= 10
+	len, lenErr := data.ReadByte()
+	if lenErr != nil {
+		return "", errors.New("string doesn't begin with string length")
+	}
+	colon, colonErr := data.ReadByte()
+	if colonErr != nil || string(colon) != ":" {
+		return "", errors.New("string not formatted properly")
+	}
+
+	intLen, _ := strconv.Atoi(string(len))
+	buf := make([]byte, intLen)
+	if _, sErr := io.ReadFull(data, buf); sErr != nil {
+		return "", sErr
+	}
+	return string(buf), nil
+}
+
+func parseList(data *bytes.Reader) ([5]interface{}, error) {
+	var list [5]interface{} // todo figure out how to handle array size
+	var index int = 0
+	for {
+		check, checkErr := data.ReadByte()
+		if checkErr != nil {
+			return list, checkErr
+		} else if check == 'e' {
+			break
+		} else if check == 'l' {
+			list[index], _ = parseList(data)
+			index = index + 1
+		} else if check == 'd' {
+			parsedDictionary, parsedDictionaryErr := parseDict(data)
+			if parsedDictionaryErr != nil {
+				return list, parsedDictionaryErr
+			}
+			list[index] = parsedDictionary
+			index = index + 1
+		} else {
+			data.UnreadByte()
+			str, strErr := parseString(data)
+			if strErr != nil {
+				return list, strErr
+			}
+			list[index] = str
+			index = index + 1
+		}
+	}
+	return list, nil
+}
+
 func parseDict(data *bytes.Reader) (map[string]interface{}, error) {
 	dictionary := map[string]interface{}{}
 	var bounce int = 1
@@ -119,54 +169,4 @@ func parseDict(data *bytes.Reader) (map[string]interface{}, error) {
 	}
 
 	return dictionary, nil
-}
-
-func parseString(data *bytes.Reader) (string, error) { // todo fix case where length is >= 10
-	len, lenErr := data.ReadByte()
-	if lenErr != nil {
-		return "", errors.New("string doesn't begin with string length")
-	}
-	colon, colonErr := data.ReadByte()
-	if colonErr != nil || string(colon) != ":" {
-		return "", errors.New("string not formatted properly")
-	}
-
-	intLen, _ := strconv.Atoi(string(len))
-	buf := make([]byte, intLen)
-	if _, sErr := io.ReadFull(data, buf); sErr != nil {
-		return "", sErr
-	}
-	return string(buf), nil
-}
-
-func parseList(data *bytes.Reader) ([5]interface{}, error) {
-	var list [5]interface{} // todo figure out how to handle array size
-	var index int = 0
-	for {
-		check, checkErr := data.ReadByte()
-		if checkErr != nil {
-			return list, checkErr
-		} else if check == 'e' {
-			break
-		} else if check == 'l' {
-			list[index], _ = parseList(data)
-			index = index + 1
-		} else if check == 'd' {
-			parsedDictionary, parsedDictionaryErr := parseDict(data)
-			if parsedDictionaryErr != nil {
-				return list, parsedDictionaryErr
-			}
-			list[index] = parsedDictionary
-			index = index + 1
-		} else {
-			data.UnreadByte()
-			str, strErr := parseString(data)
-			if strErr != nil {
-				return list, strErr
-			}
-			list[index] = str
-			index = index + 1
-		}
-	}
-	return list, nil
 }
