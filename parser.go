@@ -33,28 +33,8 @@ func parser(data *bytes.Reader) (string, error) { // todo handle multiple return
 				parser(data)
 			}
 		case 'l':
-			var list [2]string // todo figure out how to handle array size
-			var index int = 0
-			for {
-				check, checkErr := data.ReadByte()
-				if checkErr != nil {
-					return "", checkErr
-				} else if check == 'e' { // todo handle lists/dictionaries/etc inside a list
-					break
-				} else if check == 'l' || check == 'd' {
-					list[index], _ = parseString(data)
-					index = index + 1
-				} else {
-					data.UnreadByte()
-					str, strErr := parseString(data)
-					if strErr != nil {
-						return "", strErr
-					}
-					list[index] = str
-					index = index + 1
-				}
-			}
-			fmt.Println(list)
+			array, _ := parseList(data)
+			fmt.Println(array)
 			parser(data)
 		case 'd':
 			fmt.Printf("d")
@@ -71,6 +51,31 @@ func parser(data *bytes.Reader) (string, error) { // todo handle multiple return
 	}
 
 	return "File encoded properly", nil
+}
+
+func parseList(data *bytes.Reader) ([2]interface{}, error) {
+	var list [2]interface{} // todo figure out how to handle array size
+	var index int = 0
+	for {
+		check, checkErr := data.ReadByte()
+		if checkErr != nil {
+			return list, checkErr
+		} else if check == 'e' {
+			break
+		} else if check == 'l' {
+			list[index], _ = parseList(data)
+			index = index + 1
+		} else {
+			data.UnreadByte()
+			str, strErr := parseString(data)
+			if strErr != nil {
+				return list, strErr
+			}
+			list[index] = str
+			index = index + 1
+		}
+	}
+	return list, nil
 }
 
 func parseString(data *bytes.Reader) (string, error) {
