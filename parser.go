@@ -9,12 +9,14 @@ import (
 )
 
 func decode(data *bytes.Reader) (map[string]interface{}, error) {
-	metadata := map[string]interface{}{
-		"key": "value",
+	metadata := map[string]interface{}{}
+
+	parsed, parsedErr := parser(data, metadata)
+	if parsedErr != nil {
+		fmt.Println(parsedErr)
+	} else {
+		fmt.Println(parsed)
 	}
-
-	parser(data, metadata)
-
 	return metadata, nil
 }
 
@@ -44,7 +46,11 @@ func parser(data *bytes.Reader, metadata map[string]interface{}) (string, error)
 			fmt.Println(array)
 			parser(data, metadata)
 		case 'd':
-			dict, _ := parseDict(data)
+			dict, dictErr := parseDict(data)
+			if dictErr != nil {
+				return "", dictErr
+			}
+			fmt.Println(dict)
 			parser(data, metadata)
 		default:
 			data.UnreadByte()
@@ -60,32 +66,62 @@ func parser(data *bytes.Reader, metadata map[string]interface{}) (string, error)
 	return "File encoded properly", nil
 }
 
-func parseList(data *bytes.Reader) ([2]interface{}, error) {
-	var list [2]interface{} // todo figure out how to handle array size
-	var index int = 0
+func parseDict(data *bytes.Reader) (map[string]interface{}, error) {
+	dictionary := map[string]interface{}{}
+	var bounce int = 1
+	var key string = ""
+	var value [1]interface{} = [1]interface{}{""}
 	for {
 		check, checkErr := data.ReadByte()
 		if checkErr != nil {
-			return list, checkErr
+			return dictionary, checkErr
 		} else if check == 'e' {
 			break
 		} else if check == 'l' {
-			list[index], _ = parseList(data)
-			index = index + 1
+			parsedList, parsedListErr := parseList(data)
+			if parsedListErr != nil {
+				return dictionary, parsedListErr
+			}
+			if bounce == 1 {
+				return dictionary, errors.New("List can't be key in dictionary")
+			} else {
+				value[0] = parsedList
+				dictionary[key] = value[0]
+				bounce = 1
+			}
+		} else if check == 'd' {
+			parsedDictionary, parsedDictionaryErr := parseDict(data)
+			if parsedDictionaryErr != nil {
+				return dictionary, parsedDictionaryErr
+			}
+			if bounce == 1 {
+				return dictionary, errors.New("Dictionaries can't be key in dictionary")
+			} else {
+				value[0] = parsedDictionary
+				dictionary[key] = value[0]
+				bounce = 1
+			}
 		} else {
 			data.UnreadByte()
 			str, strErr := parseString(data)
 			if strErr != nil {
-				return list, strErr
+				return dictionary, strErr
 			}
-			list[index] = str
-			index = index + 1
+			if bounce == 1 {
+				key = str
+				bounce = 0
+			} else {
+				value[0] = str
+				dictionary[key] = value[0]
+				bounce = 1
+			}
 		}
 	}
-	return list, nil
+
+	return dictionary, nil
 }
 
-func parseString(data *bytes.Reader) (string, error) {
+func parseString(data *bytes.Reader) (string, error) { // todo fix case where length is >= 10
 	len, lenErr := data.ReadByte()
 	if lenErr != nil {
 		return "", errors.New("string doesn't begin with string length")
@@ -101,4 +137,36 @@ func parseString(data *bytes.Reader) (string, error) {
 		return "", sErr
 	}
 	return string(buf), nil
+}
+
+func parseList(data *bytes.Reader) ([5]interface{}, error) {
+	var list [5]interface{} // todo figure out how to handle array size
+	var index int = 0
+	for {
+		check, checkErr := data.ReadByte()
+		if checkErr != nil {
+			return list, checkErr
+		} else if check == 'e' {
+			break
+		} else if check == 'l' {
+			list[index], _ = parseList(data)
+			index = index + 1
+		} else if check == 'd' {
+			parsedDictionary, parsedDictionaryErr := parseDict(data)
+			if parsedDictionaryErr != nil {
+				return list, parsedDictionaryErr
+			}
+			list[index] = parsedDictionary
+			index = index + 1
+		} else {
+			data.UnreadByte()
+			str, strErr := parseString(data)
+			if strErr != nil {
+				return list, strErr
+			}
+			list[index] = str
+			index = index + 1
+		}
+	}
+	return list, nil
 }
